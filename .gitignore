@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+*.log
+port_data.json
+port.html
