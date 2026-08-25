@@ -7,7 +7,9 @@ as its own project — same "build the thing, watch it in a browser" approach,
 much smaller scope.
 
 **[Live visualization](docs/index.html)** (or, once Pages is enabled,
-`https://<user>.github.io/container-port-sim/`).
+`https://<user>.github.io/container-port-sim/`) — click the &#9881; in the
+playback bar for controls that re-run the sim in-browser with different
+ship timing, slip/crane/truck counts, and more.
 
 ## The model
 
@@ -89,6 +91,23 @@ python build_port_page.py                  # inlines it into docs/index.html
 every resource, every ship's progress) — the page just scrubs/plays through
 those snapshots on an HTML5 canvas, no server, no dependencies. Commit the
 regenerated `docs/index.html` to publish an update.
+
+## Interactive controls
+
+The &#9881; button in the playback bar opens a control panel — sim length,
+ship interarrival time, slips, cranes/slip, trucks, and (under "advanced")
+crane move time, truck round-trip time, yard/export-pool capacity, and the
+random seed. Hitting "run" re-simulates entirely client-side, no server
+round trip: `port_template.html` embeds a from-scratch JS port of the
+model (a small SimPy-alike event engine plus a direct translation of
+`PortSim`/`ship_process`/`_do_move`), so a run over a couple weeks of
+simulated time finishes in well under 100ms in-browser. "reset" goes back
+to the Python-baked default run shown on load.
+
+That JS port is a second implementation, not shared code with
+`port_model.py` — if you change `PortParams`' shape or defaults there,
+update the mirrored `FIXED_EXTRA_PARAMS`/control definitions in
+`port_template.html` too.
 
 ## A real modeling bug, for the DES-curious
 

@@ -59,6 +59,7 @@
     font-family: var(--font-mono); font-size: 11px; color: var(--muted);
     margin-top: 3px; max-width: 380px; line-height: 1.5;
   }
+  #wordmark .sub a { pointer-events: auto; }
 
   #stats {
     top: 18px; right: 20px; z-index: 2;
@@ -90,6 +91,10 @@
   }
   :root[data-theme="dark"] #hud button, @media (prefers-color-scheme: dark) { }
   #hud button.pause { background: var(--muted); color: var(--panel-solid); }
+  #hud button#controlsToggle {
+    background: transparent; border: 1px solid var(--line); color: var(--ink); font-size: 15px;
+  }
+  #hud button#controlsToggle.open { background: var(--accent); color: #06251f; border-color: transparent; }
   #hud input[type=range] { width: 34vw; max-width: 420px; accent-color: var(--accent); }
   #hud .time {
     font-family: var(--font-mono); font-size: 12px; color: var(--ink);
@@ -117,6 +122,44 @@
     cursor: pointer;
   }
 
+  /* -- simulation control panel ----------------------------------------- */
+  #controls {
+    display: none;
+    bottom: 74px; right: 20px; z-index: 4; width: 290px; max-height: 70vh;
+    overflow-y: auto;
+    background: var(--panel); backdrop-filter: blur(14px) saturate(1.4);
+    -webkit-backdrop-filter: blur(14px) saturate(1.4);
+    border: 1px solid var(--line); border-radius: 12px;
+    padding: 12px 14px 14px; font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+  }
+  #controls.open { display: block; }
+  #controls .hdr { color: var(--ink); font-weight: 700; font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 9px; }
+  #controls .field { margin-bottom: 10px; }
+  #controls label { display: flex; justify-content: space-between; margin-bottom: 3px; color: var(--muted); }
+  #controls label span { color: var(--ink); font-weight: 600; }
+  #controls input[type=range] { width: 100%; accent-color: var(--accent); display: block; }
+  #controls input[type=number] {
+    font-family: var(--font-mono); font-size: 11px; background: transparent; color: var(--ink);
+    border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; width: 90px;
+  }
+  #controls details { margin: 10px 0 6px; border-top: 1px solid var(--line); padding-top: 9px; }
+  #controls summary {
+    cursor: pointer; color: var(--ink); font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; font-size: 10.5px; margin-bottom: 4px;
+  }
+  #controls .seedRow { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  #controls .ctlBtns { display: flex; gap: 8px; margin-top: 12px; }
+  #controls button {
+    appearance: none; border: 1px solid var(--line); background: var(--accent);
+    color: #06251f; border-radius: 8px; padding: 7px 10px; font-family: var(--font-mono);
+    font-weight: 600; font-size: 10.5px; cursor: pointer; flex: 1;
+  }
+  #controls button#resetBtn { background: transparent; color: var(--ink); }
+  #controls button#randSeedBtn { flex: 0 0 auto; padding: 6px 9px; background: transparent; color: var(--ink); }
+  #runStatus { margin-top: 9px; font-size: 10px; line-height: 1.6; min-height: 13px; }
+
   a.gh { color: var(--accent); text-decoration: none; }
 </style>
 
@@ -125,14 +168,68 @@
 
   <div class="corner" id="wordmark">
     <div class="brand">Container Port DES</div>
-    <div class="sub">Two-slip Panamax terminal &middot; 4 quay cranes &middot; shared truck pool &middot; stacking yard.
-      A discrete-event simulation (<a class="gh" href="https://simpy.readthedocs.io/" target="_blank" rel="noopener">SimPy</a>), spun out of
-      <a class="gh" href="https://github.com/mathewsgreg/planet_sim" target="_blank" rel="noopener">planet_sim</a>.</div>
+    <div class="sub"></div>
   </div>
 
   <div class="corner" id="stats"></div>
   <div class="corner" id="legend"></div>
   <div class="corner" id="themeToggle">theme: system</div>
+
+  <div class="corner" id="controls">
+    <div class="hdr">Simulation Controls</div>
+
+    <div class="field">
+      <label for="c_sim_days">sim length <span id="v_sim_days"></span></label>
+      <input type="range" id="c_sim_days" min="3" max="60" step="1">
+    </div>
+    <div class="field">
+      <label for="c_interarrival">ship interarrival (mean) <span id="v_interarrival"></span></label>
+      <input type="range" id="c_interarrival" min="6" max="72" step="1">
+    </div>
+    <div class="field">
+      <label for="c_slips">slips <span id="v_slips"></span></label>
+      <input type="range" id="c_slips" min="1" max="4" step="1">
+    </div>
+    <div class="field">
+      <label for="c_cranes">cranes / slip <span id="v_cranes"></span></label>
+      <input type="range" id="c_cranes" min="1" max="4" step="1">
+    </div>
+    <div class="field">
+      <label for="c_trucks">shared trucks <span id="v_trucks"></span></label>
+      <input type="range" id="c_trucks" min="1" max="40" step="1">
+    </div>
+
+    <details id="advanced">
+      <summary>advanced</summary>
+      <div class="field">
+        <label for="c_cranemin">crane move time <span id="v_cranemin"></span></label>
+        <input type="range" id="c_cranemin" min="0.5" max="10" step="0.1">
+      </div>
+      <div class="field">
+        <label for="c_truckrt">truck round trip <span id="v_truckrt"></span></label>
+        <input type="range" id="c_truckrt" min="2" max="60" step="1">
+      </div>
+      <div class="field">
+        <label for="c_yardcap">yard capacity <span id="v_yardcap"></span></label>
+        <input type="range" id="c_yardcap" min="500" max="6000" step="100">
+      </div>
+      <div class="field">
+        <label for="c_exportcap">export pool capacity <span id="v_exportcap"></span></label>
+        <input type="range" id="c_exportcap" min="500" max="6000" step="100">
+      </div>
+      <div class="seedRow">
+        <label for="c_seed" style="margin:0;">random seed</label>
+        <input type="number" id="c_seed">
+        <button type="button" id="randSeedBtn" title="randomize seed">&#127922;</button>
+      </div>
+    </details>
+
+    <div class="ctlBtns">
+      <button type="button" id="runBtn">&#9654; run</button>
+      <button type="button" id="resetBtn">reset</button>
+    </div>
+    <div id="runStatus"></div>
+  </div>
 
   <div id="hud">
     <button id="playBtn">&#9654;</button>
@@ -144,11 +241,410 @@
       <option value="72">72x</option>
       <option value="200">200x</option>
     </select>
+    <button id="controlsToggle" title="simulation controls">&#9881;</button>
   </div>
 </div>
 
 <script>
 const DATA = /*__PORT_DATA__*/;
+
+// =======================================================================
+// In-browser port DES -- a JS port of port_model.py's PortSim so the
+// control panel below can re-run the sim with different parameters
+// instantly, client-side, no server round trip (this page has always been
+// "no server, no dependencies"; this keeps that true while making the
+// parameters live instead of baked-in-at-build-time only).
+//
+// It's a from-scratch reimplementation, not a shared codebase with
+// port_model.py -- if you change PortParams there, mirror the change here
+// too. Structurally it follows the same shape on purpose: a tiny SimPy-like
+// event engine (events/processes/resources built on JS generators, which
+// map onto SimPy's yield-based coroutines almost 1:1), then a fairly
+// direct translation of PortSim / ship_process / _do_move / _truck_return.
+// =======================================================================
+const runPortSimJS = (function () {
+
+  // -- seeded RNG (mulberry32) + the two distributions the model needs.
+  // Not bit-identical to Python's random module, just the same shapes. --
+  function makeRng(seed) {
+    let s = seed >>> 0;
+    const next = () => {
+      s = (s + 0x6D2B79F5) | 0;
+      let t = Math.imul(s ^ (s >>> 15), 1 | s);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    return {
+      expovariate(rate) { return -Math.log(1 - next()) / rate; },
+      triangular(low, high, mode) {
+        const u = next();
+        const c = (mode - low) / (high - low);
+        return u < c
+          ? low + Math.sqrt(u * (high - low) * (mode - low))
+          : high - Math.sqrt((1 - u) * (high - low) * (high - mode));
+      },
+      shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(next() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      },
+    };
+  }
+
+  // -- minimal SimPy-like core: an event, a binary-heap-scheduled
+  // environment, a generator-driven process runner, and the three
+  // resource types port_model.py actually uses (Resource, Container,
+  // and a token Store for the interchangeable berth pool). --
+  class SEvent {
+    constructor() { this.triggered = false; this.value = undefined; this._cbs = []; }
+    succeed(value) {
+      if (this.triggered) return;
+      this.value = value; this.triggered = true;
+      const cbs = this._cbs; this._cbs = [];
+      for (const cb of cbs) cb(this);
+    }
+    then(cb) { this.triggered ? cb(this) : this._cbs.push(cb); }
+  }
+
+  class Environment {
+    constructor() { this.now = 0; this._heap = []; this._seq = 0; }
+    _cmp(a, b) { return a.time !== b.time ? a.time - b.time : a.seq - b.seq; }
+    _push(time, action) {
+      const heap = this._heap;
+      heap.push({ time, seq: this._seq++, action });
+      let i = heap.length - 1;
+      while (i > 0) {
+        const parent = (i - 1) >> 1;
+        if (this._cmp(heap[i], heap[parent]) < 0) {
+          [heap[i], heap[parent]] = [heap[parent], heap[i]]; i = parent;
+        } else break;
+      }
+    }
+    _pop() {
+      const heap = this._heap;
+      const top = heap[0];
+      const last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        let i = 0;
+        for (;;) {
+          const l = i * 2 + 1, r = l + 1;
+          let smallest = i;
+          if (l < heap.length && this._cmp(heap[l], heap[smallest]) < 0) smallest = l;
+          if (r < heap.length && this._cmp(heap[r], heap[smallest]) < 0) smallest = r;
+          if (smallest === i) break;
+          [heap[i], heap[smallest]] = [heap[smallest], heap[i]];
+          i = smallest;
+        }
+      }
+      return top;
+    }
+    timeout(delay, value) {
+      const ev = new SEvent();
+      this._push(this.now + delay, () => ev.succeed(value));
+      return ev;
+    }
+    // runs a no-arg generator function; returns an event that fires when
+    // the generator completes (SimPy's Process is itself such an event --
+    // that's what lets ship_process `yield` a crane worker to join it).
+    process(genFn) {
+      const doneEv = new SEvent();
+      const gen = genFn();
+      const step = (sent) => {
+        let res;
+        try { res = gen.next(sent); }
+        catch (e) { console.error(e); doneEv.succeed(); return; }
+        if (res.done) { doneEv.succeed(res.value); return; }
+        res.value.then((ev) => step(ev.value));
+      };
+      step(undefined);
+      return doneEv;
+    }
+    run(until) {
+      while (this._heap.length && this._heap[0].time <= until) {
+        const item = this._pop();
+        this.now = item.time;
+        item.action();
+      }
+      this.now = until;
+    }
+  }
+
+  class Resource {
+    constructor(capacity) { this.capacity = capacity; this.count = 0; this.queue = []; }
+    request() {
+      const ev = new SEvent();
+      this.queue.push(ev);
+      this._trigger();
+      return ev;
+    }
+    release() { this.count--; this._trigger(); }
+    _trigger() {
+      while (this.queue.length && this.count < this.capacity) {
+        const ev = this.queue.shift();
+        this.count++;
+        ev.succeed();
+      }
+    }
+  }
+
+  class Container {
+    constructor(capacity, init) {
+      this.capacity = capacity; this.level = init;
+      this._puts = []; this._gets = [];
+    }
+    put(amount) {
+      const ev = new SEvent();
+      this._puts.push({ ev, amount });
+      this._trigger();
+      return ev;
+    }
+    get(amount) {
+      const ev = new SEvent();
+      this._gets.push({ ev, amount });
+      this._trigger();
+      return ev;
+    }
+    _trigger() {
+      let changed = true;
+      while (changed) {
+        changed = false;
+        if (this._puts.length) {
+          const head = this._puts[0];
+          if (this.level + head.amount <= this.capacity + 1e-9) {
+            this.level += head.amount; this._puts.shift(); head.ev.succeed(); changed = true;
+          }
+        }
+        if (this._gets.length) {
+          const head = this._gets[0];
+          if (this.level - head.amount >= -1e-9) {
+            this.level -= head.amount; this._gets.shift(); head.ev.succeed(); changed = true;
+          }
+        }
+      }
+    }
+  }
+
+  class TokenStore {
+    constructor() { this.items = []; this._gets = []; }
+    put(item) {
+      this.items.push(item);
+      while (this._gets.length && this.items.length) this._gets.shift().succeed(this.items.shift());
+      const ev = new SEvent(); ev.succeed(); return ev;
+    }
+    get() {
+      const ev = new SEvent();
+      if (this.items.length) ev.succeed(this.items.shift());
+      else this._gets.push(ev);
+      return ev;
+    }
+  }
+
+  const SHIP_NAMES = [
+    "MV Pacific Vanguard", "MV Meridian Star", "MV Cape Falcon", "MV Nordic Trader",
+    "MV Golden Horizon", "MV Blue Ensign", "MV Southern Cross", "MV Coral Voyager",
+    "MV Atlas Bridge", "MV Harbor King", "MV Silver Current", "MV Amber Tide",
+    "MV Iron Compass", "MV Northern Wake", "MV Crimson Pilot", "MV Sea Aster",
+  ];
+
+  function round2(x) { return Math.round(x * 100) / 100; }
+  function mean(xs) { return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0; }
+  function percentile(xs, q) {
+    if (!xs.length) return 0;
+    const s = [...xs].sort((a, b) => a - b);
+    return s[Math.min(s.length - 1, Math.floor(q * s.length))];
+  }
+
+  // -- the model: a fairly direct translation of PortSim / ship_process /
+  // _do_move / _truck_return from port_model.py. See that file's
+  // docstrings (especially on _do_move) for *why* it's shaped this way --
+  // the crane/truck decoupling there is the whole point of the model. --
+  function runPortSimJS(paramsInput) {
+    const p = { random_seed: 42, ...paramsInput };
+    const env = new Environment();
+    const rng = makeRng(p.random_seed);
+
+    const berths = new TokenStore();
+    for (let i = 0; i < p.n_slips; i++) berths.put(i);
+    const cranes = [];
+    for (let i = 0; i < p.n_slips; i++) cranes.push(new Resource(p.cranes_per_slip));
+    const trucks = new Resource(p.n_trucks);
+    const yard = new Container(p.yard_capacity_teu, p.yard_capacity_teu * 0.2);
+    const exportPool = new Container(p.export_pool_capacity_teu, p.export_pool_capacity_teu * 0.2);
+
+    const anchorage = [];
+    const shipsAtSlip = {};
+    const completedShips = [];
+    let movesCompleted = 0;
+    let craneBusyHours = 0, truckBusyHours = 0;
+    let nextShipId = 0;
+    const samples = [];
+
+    const nameCycle = rng.shuffle(SHIP_NAMES.slice());
+    function nextName() {
+      const name = nameCycle[nextShipId % nameCycle.length];
+      const cycleNum = Math.floor(nextShipId / nameCycle.length);
+      return cycleNum === 0 ? name : `${name} (${cycleNum + 1})`;
+    }
+
+    function* doMove(move, cranePool) {
+      // gate on yard capacity / export inventory first, same order as
+      // port_model.py, so a truck isn't held hostage on yard/pool space
+      if (move === "discharge") yield yard.put(1);
+      else yield exportPool.get(1);
+
+      const truckReq = trucks.request();
+      yield truckReq;
+      const truckStart = env.now;
+
+      const craneReq = cranePool.request();
+      yield craneReq;
+      const craneStart = env.now;
+      yield env.timeout(rng.expovariate(1 / p.crane_move_minutes) / 60);
+      cranePool.release();
+      craneBusyHours += env.now - craneStart;
+
+      // crane is free again immediately; the truck's return trip runs as
+      // its own independent process so it never blocks the next box
+      env.process(function* () {
+        yield env.timeout(rng.expovariate(1 / p.truck_round_trip_minutes) / 60);
+        truckBusyHours += env.now - truckStart;
+        trucks.release();
+      });
+    }
+
+    function* shipProcess(ship) {
+      anchorage.push(ship.id);
+      const slipId = yield berths.get();
+      anchorage.splice(anchorage.indexOf(ship.id), 1);
+      ship.slip_assigned_time = env.now;
+      ship.slip_id = slipId;
+
+      const moves = [];
+      for (let i = 0; i < ship.discharge_teu; i++) moves.push("discharge");
+      for (let i = 0; i < ship.load_teu; i++) moves.push("load");
+      const cursor = { i: 0 };
+      shipsAtSlip[slipId] = {
+        id: ship.id, name: ship.name, discharge: ship.discharge_teu, load: ship.load_teu,
+        moves_done: 0, moves_total: moves.length,
+      };
+
+      const cranePool = cranes[slipId];
+      const workers = [];
+      for (let w = 0; w < p.cranes_per_slip; w++) {
+        workers.push(env.process(function* () {
+          while (cursor.i < moves.length) {
+            const move = moves[cursor.i]; cursor.i++;
+            yield* doMove(move, cranePool);
+            movesCompleted++;
+            shipsAtSlip[slipId].moves_done++;
+          }
+        }));
+      }
+      for (const w of workers) yield w;
+
+      ship.departure_time = env.now;
+      delete shipsAtSlip[slipId];
+      completedShips.push(ship);
+      yield berths.put(slipId);
+    }
+
+    function* shipGenerator() {
+      while (true) {
+        yield env.timeout(rng.expovariate(1 / p.ship_interarrival_mean_hours));
+        const ship = {
+          id: nextShipId, name: nextName(),
+          discharge_teu: Math.floor(rng.triangular(p.discharge_teu_min, p.discharge_teu_max, p.discharge_teu_mode)),
+          load_teu: Math.floor(rng.triangular(p.load_teu_min, p.load_teu_max, p.load_teu_mode)),
+          arrival_time: env.now,
+          slip_assigned_time: null, slip_id: null, departure_time: null,
+        };
+        nextShipId++;
+        env.process(() => shipProcess(ship));
+      }
+    }
+
+    function* yardPickupProcess() {
+      while (true) {
+        yield env.timeout(rng.expovariate(1 / p.yard_pickup_mean_minutes) / 60);
+        if (yard.level >= 1) yield yard.get(1);
+      }
+    }
+    function* gateInProcess() {
+      while (true) {
+        yield env.timeout(rng.expovariate(1 / p.gate_in_mean_minutes) / 60);
+        if (exportPool.level + 1 <= exportPool.capacity) yield exportPool.put(1);
+      }
+    }
+    function* sampler() {
+      while (true) {
+        samples.push({
+          t: round2(env.now),
+          anchorage: anchorage.slice(),
+          slip_ships: Array.from({ length: p.n_slips }, (_, i) => shipsAtSlip[i] || null),
+          crane_busy: cranes.map((c) => c.count),
+          crane_cap: cranes.map((c) => c.capacity),
+          truck_busy: trucks.count,
+          truck_queue: trucks.queue.length,
+          truck_cap: trucks.capacity,
+          yard_level: Math.round(yard.level * 10) / 10,
+          yard_cap: yard.capacity,
+          export_level: Math.round(exportPool.level * 10) / 10,
+          export_cap: exportPool.capacity,
+          ships_completed: completedShips.length,
+          moves_completed: movesCompleted,
+        });
+        yield env.timeout(p.sample_interval_hours);
+      }
+    }
+
+    env.process(shipGenerator);
+    env.process(yardPickupProcess);
+    env.process(gateInProcess);
+    env.process(sampler);
+    env.run(p.sim_days * 24);
+
+    const shipsPayload = completedShips.map((s) => {
+      const turnaround = s.departure_time != null ? s.departure_time - s.arrival_time : null;
+      const wait = s.slip_assigned_time != null ? s.slip_assigned_time - s.arrival_time : null;
+      return {
+        id: s.id, name: s.name, discharge: s.discharge_teu, load: s.load_teu,
+        arrival: round2(s.arrival_time),
+        slip_assigned: s.slip_assigned_time != null ? round2(s.slip_assigned_time) : null,
+        slip_id: s.slip_id,
+        departure: s.departure_time != null ? round2(s.departure_time) : null,
+        turnaround: turnaround != null ? round2(turnaround) : null,
+        wait: wait != null ? round2(wait) : null,
+      };
+    }).sort((a, b) => a.arrival - b.arrival);
+
+    const turnarounds = shipsPayload.map((s) => s.turnaround).filter((v) => v != null);
+    const waits = shipsPayload.map((s) => s.wait).filter((v) => v != null);
+    const totalCraneCapacityHours = p.n_slips * p.cranes_per_slip * p.sim_days * 24;
+    const totalTruckCapacityHours = p.n_trucks * p.sim_days * 24;
+
+    const stats = {
+      ships_completed: completedShips.length,
+      ships_still_in_system: nextShipId - completedShips.length,
+      avg_turnaround_hours: mean(turnarounds),
+      p90_turnaround_hours: percentile(turnarounds, 0.90),
+      avg_anchorage_wait_hours: mean(waits),
+      pct_ships_that_waited: waits.length ? 100 * waits.filter((w) => w > 0.01).length / waits.length : 0,
+      total_moves_completed: movesCompleted,
+      moves_per_day: movesCompleted / p.sim_days,
+      crane_utilization_pct: 100 * craneBusyHours / totalCraneCapacityHours,
+      truck_utilization_pct: 100 * truckBusyHours / totalTruckCapacityHours,
+      final_yard_level_pct: 100 * yard.level / yard.capacity,
+      final_export_pool_pct: 100 * exportPool.level / exportPool.capacity,
+    };
+
+    return { params: { ...p }, stats, ships: shipsPayload, samples };
+  }
+
+  return runPortSimJS;
+})();
 
 // ---------------------------------------------------------------------
 // setup
@@ -170,18 +666,12 @@ function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-const shipsById = {};
-for (const s of DATA.ships) shipsById[s.id] = s;
-
-const samples = DATA.samples;
-const dt = DATA.params.sample_interval_hours;
-const simDays = DATA.params.sim_days;
-const nSlips = DATA.params.n_slips;
-const cranesPerSlip = DATA.params.cranes_per_slip;
-
 // ---------------------------------------------------------------------
-// playback state
+// active dataset (either the Python-baked DATA, or the output of a live
+// runPortSimJS() call from the control panel) + playback state
 // ---------------------------------------------------------------------
+let activeData, shipsById, samples, dt, simDays, nSlips, cranesPerSlip;
+
 let playing = true;
 let speed = 24; // simulated hours per real second
 let simTime = 0; // hours
@@ -191,7 +681,6 @@ const scrub = document.getElementById('scrub');
 const timeLabel = document.getElementById('timeLabel');
 const playBtn = document.getElementById('playBtn');
 const speedSel = document.getElementById('speedSel');
-scrub.max = samples.length - 1;
 
 function sampleAt(t) {
   let idx = Math.floor(t / dt);
@@ -205,7 +694,49 @@ function setSimTime(t) {
   scrub.value = Math.round(simTime / dt);
   timeLabel.textContent = `day ${(simTime / 24).toFixed(2)} / ${simDays.toFixed(0)}`;
 }
-setSimTime(0);
+
+function applyDataset(data, sourceLabel) {
+  activeData = data;
+  shipsById = {};
+  for (const s of data.ships) shipsById[s.id] = s;
+  samples = data.samples;
+  dt = data.params.sample_interval_hours;
+  simDays = data.params.sim_days;
+  nSlips = data.params.n_slips;
+  cranesPerSlip = data.params.cranes_per_slip;
+  scrub.max = samples.length - 1;
+  setSimTime(0);
+  updateWordmark(data.params, sourceLabel);
+  updateRunStatus(data, sourceLabel);
+}
+
+function updateWordmark(p, sourceLabel) {
+  const sub = document.querySelector('#wordmark .sub');
+  const totalCranes = p.n_slips * p.cranes_per_slip;
+  sub.innerHTML =
+    `${p.n_slips}-slip Panamax terminal &middot; ${totalCranes} quay cranes &middot; ` +
+    `${p.n_trucks} shared trucks &middot; <em>${sourceLabel}</em>.<br>` +
+    `A discrete-event simulation (<a class="gh" href="https://simpy.readthedocs.io/" target="_blank" rel="noopener">SimPy</a>` +
+    (sourceLabel.indexOf('in-browser') !== -1 ? ' logic, ported to JS' : '') +
+    `), spun out of <a class="gh" href="https://github.com/mathewsgreg/planet_sim" target="_blank" rel="noopener">planet_sim</a>.`;
+}
+
+function updateRunStatus(data, sourceLabel) {
+  const el = document.getElementById('runStatus');
+  if (!el) return;
+  if (sourceLabel === 'Python (baked default)') {
+    el.textContent = 'showing the baked default run';
+    return;
+  }
+  const st = data.stats;
+  el.innerHTML =
+    `ships completed: <b style="color:var(--ink)">${st.ships_completed}</b> &middot; ` +
+    `avg turnaround: <b style="color:var(--ink)">${st.avg_turnaround_hours.toFixed(1)}h</b><br>` +
+    `crane util: <b style="color:var(--ink)">${st.crane_utilization_pct.toFixed(0)}%</b> &middot; ` +
+    `truck util: <b style="color:var(--ink)">${st.truck_utilization_pct.toFixed(0)}%</b>`;
+}
+
+applyDataset(DATA, 'Python (baked default)');
 
 playBtn.addEventListener('click', () => {
   playing = !playing;
@@ -231,6 +762,93 @@ themeToggle.addEventListener('click', () => {
 });
 
 // ---------------------------------------------------------------------
+// control panel: adjust parameters, then re-run runPortSimJS() in-browser
+// ---------------------------------------------------------------------
+const controlsPanel = document.getElementById('controls');
+const controlsToggleBtn = document.getElementById('controlsToggle');
+controlsToggleBtn.addEventListener('click', () => {
+  controlsPanel.classList.toggle('open');
+  controlsToggleBtn.classList.toggle('open', controlsPanel.classList.contains('open'));
+});
+
+// param key -> [range input id, readout span id, display formatter]
+const CTL = {
+  sim_days: ['c_sim_days', 'v_sim_days', (v) => `${v}d`],
+  ship_interarrival_mean_hours: ['c_interarrival', 'v_interarrival', (v) => `${v}h`],
+  n_slips: ['c_slips', 'v_slips', (v) => `${v}`],
+  cranes_per_slip: ['c_cranes', 'v_cranes', (v) => `${v}`],
+  n_trucks: ['c_trucks', 'v_trucks', (v) => `${v}`],
+  crane_move_minutes: ['c_cranemin', 'v_cranemin', (v) => `${parseFloat(v).toFixed(1)}m`],
+  truck_round_trip_minutes: ['c_truckrt', 'v_truckrt', (v) => `${v}m`],
+  yard_capacity_teu: ['c_yardcap', 'v_yardcap', (v) => `${v} TEU`],
+  export_pool_capacity_teu: ['c_exportcap', 'v_exportcap', (v) => `${v} TEU`],
+};
+
+// params PortParams has defaults for that we don't expose as sliders
+// (kept identical to PortParams' defaults in port_model.py)
+const FIXED_EXTRA_PARAMS = {
+  discharge_teu_min: 300, discharge_teu_mode: 600, discharge_teu_max: 900,
+  load_teu_min: 300, load_teu_mode: 600, load_teu_max: 900,
+  yard_pickup_mean_minutes: 2.0, gate_in_mean_minutes: 2.0,
+  sample_interval_hours: 0.25,
+};
+
+function setControlsFromParams(p) {
+  for (const key of Object.keys(CTL)) {
+    const [inputId, labelId, fmt] = CTL[key];
+    document.getElementById(inputId).value = p[key];
+    document.getElementById(labelId).textContent = fmt(p[key]);
+  }
+  document.getElementById('c_seed').value = p.random_seed != null ? p.random_seed : 42;
+}
+
+for (const key of Object.keys(CTL)) {
+  const [inputId, labelId, fmt] = CTL[key];
+  document.getElementById(inputId).addEventListener('input', (e) => {
+    document.getElementById(labelId).textContent = fmt(e.target.value);
+  });
+}
+
+function collectParamsFromControls() {
+  const p = { ...FIXED_EXTRA_PARAMS };
+  for (const key of Object.keys(CTL)) {
+    p[key] = parseFloat(document.getElementById(CTL[key][0]).value);
+  }
+  p.sim_days = Math.round(p.sim_days);
+  p.n_slips = Math.round(p.n_slips);
+  p.cranes_per_slip = Math.round(p.cranes_per_slip);
+  p.n_trucks = Math.round(p.n_trucks);
+  p.random_seed = parseInt(document.getElementById('c_seed').value, 10);
+  if (!Number.isFinite(p.random_seed)) p.random_seed = 42;
+  return p;
+}
+
+setControlsFromParams(DATA.params);
+
+document.getElementById('runBtn').addEventListener('click', () => {
+  const runStatus = document.getElementById('runStatus');
+  runStatus.textContent = 'running…';
+  // let "running…" paint before the (synchronous) sim run blocks the thread
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const params = collectParamsFromControls();
+    const t0 = performance.now();
+    const payload = runPortSimJS(params);
+    const ms = (performance.now() - t0).toFixed(0);
+    applyDataset(payload, 'live in-browser run');
+    document.getElementById('runStatus').innerHTML += ` <span style="opacity:.7">(${ms}ms)</span>`;
+  }));
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  setControlsFromParams(DATA.params);
+  applyDataset(DATA, 'Python (baked default)');
+});
+
+document.getElementById('randSeedBtn').addEventListener('click', () => {
+  document.getElementById('c_seed').value = Math.floor(Math.random() * 1e6);
+});
+
+// ---------------------------------------------------------------------
 // layout (schematic, in CSS pixels, recomputed each frame from W/H)
 // ---------------------------------------------------------------------
 function layout() {
@@ -245,22 +863,27 @@ function layout() {
   const berthX = anchorageX + anchorageW + 30;
   const yardX = berthX + berthW + 30;
 
-  const slipH = plotH * 0.36;
-  const slipGap = plotH * 0.10;
-  const slip0Y = padT;
-  const slip1Y = padT + slipH + slipGap;
+  // slip rows stack to fill the available height, however many there are
+  const n = Math.max(1, nSlips);
+  const slipGap = plotH * (n > 1 ? 0.08 : 0);
+  const slipH = (plotH - slipGap * (n - 1)) / n;
+  const slips = [];
+  for (let i = 0; i < n; i++) {
+    slips.push({ x: berthX, y: padT + i * (slipH + slipGap), w: berthW, h: slipH });
+  }
 
-  const truckY = slip1Y + slipH + 26;
+  const yardH = Math.min(plotH * 0.42, 260);
+  const exportY = padT + yardH + 22;
+  const truckY = slips[n - 1].y + slipH + 26;
   const truckH = Math.max(40, padT + plotH - truckY - 4);
 
   return {
     padL, padT, plotW, plotH,
     anchorage: { x: anchorageX, y: padT, w: anchorageW, h: plotH },
     berth: { x: berthX, w: berthW },
-    slips: [ { x: berthX, y: slip0Y, w: berthW, h: slipH },
-             { x: berthX, y: slip1Y, w: berthW, h: slipH } ],
-    yard: { x: yardX, y: padT, w: yardW, h: slipH },
-    exportPool: { x: yardX, y: slip1Y, w: yardW, h: slipH * 0.55 },
+    slips,
+    yard: { x: yardX, y: padT, w: yardW, h: yardH },
+    exportPool: { x: yardX, y: exportY, w: yardW, h: Math.min(plotH * 0.28, 170) },
     truck: { x: berthX, y: truckY, w: berthW, h: truckH },
   };
 }
@@ -457,6 +1080,7 @@ function draw() {
   // ---- slips + cranes ----
   for (let i = 0; i < nSlips; i++) {
     const slip = L.slips[i];
+    if (!slip) continue;
     label(`Slip ${i + 1}`, slip.x, slip.y - 12, { bold: true, size: 10.5 });
     ctx.strokeStyle = line;
     rr(slip.x, slip.y, slip.w, slip.h, 10); ctx.stroke();
@@ -465,10 +1089,11 @@ function draw() {
     ctx.fillRect(slip.x, slip.y + slip.h * 0.7, slip.w, slip.h * 0.3);
     ctx.globalAlpha = 1;
 
-    // cranes along the quay
+    // cranes along the quay, evenly spread regardless of how many there are
     const craneBusy = s.crane_busy[i], craneCap = s.crane_cap[i];
     for (let c = 0; c < craneCap; c++) {
-      const ccx = slip.x + slip.w * (0.22 + c * 0.5);
+      const frac = craneCap > 1 ? c / (craneCap - 1) : 0.5;
+      const ccx = slip.x + slip.w * (0.14 + frac * 0.72);
       const ccy = slip.y + slip.h * 0.62;
       drawCraneIcon(ccx, ccy, Math.min(26, slip.h * 0.22), c < craneBusy);
     }
